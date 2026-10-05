@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Excel → Image/Video Generator</title>
+  <link rel="stylesheet" href="/static/style.css?v=2">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app-container">
+  
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⚡</div>
+      <h2>Automator</h2>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-target="uploadSection">
+        <span class="nav-icon">📁</span> <span class="nav-text">1. Upload Files</span>
+      </button>
+      <button class="nav-item" id="navCapture" data-target="designWorkspace" disabled title="Upload files first">
+        <span class="nav-icon">🎯</span> <span class="nav-text">2. Design Workspace</span>
+      </button>
+      <button class="nav-item" data-target="excelGenerator">
+        <span class="nav-icon">🔗</span> <span class="nav-text">3. Excel Links</span>
+      </button>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div class="topbar-text">
+        <h1>Excel → Image/Video Generator</h1>
+        <p>Automate personalized images and videos from spreadsheet data.</p>
+      </div>
+    </header>
+
+    <div class="content-wrapper">
+      <!-- 1. UPLOAD SECTION -->
+      <section id="uploadSection" class="content-section active">
+        <div class="card">
+          <h2>Upload Files</h2>
+          <div class="grid">
+            <label class="upload">
+              <span class="upload-icon">🖼️</span>
+              <span>Template Image/Video</span>
+              <input id="image" type="file" accept=".png,.jpg,.jpeg,.webp,.mp4,.mov">
+            </label>
+            <label class="upload">
+              <span class="upload-icon">📊</span>
+              <span>Excel / CSV File</span>
+              <input id="excel" type="file" accept=".xlsx,.xlsm,.csv">
+            </label>
+          </div>
+          <div style="margin-top: 24px;">
+            <button id="uploadBtn">Upload & Read Data</button>
+          </div>
+          <div id="uploadStatus"></div>
+        </div>
+      </section>
+
+      <!-- 2. DESIGN WORKSPACE -->
+      <section id="designWorkspace" class="content-section hidden">
+        <div style="display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap;">
+          
+          <!-- LEFT SIDE: Sticky Image -->
+          <div style="flex: 1.2; min-width: 450px; position: sticky; top: 24px; z-index: 10;">
+            <div id="imagePreviewCard" class="card" style="margin-bottom: 0;">
+              <h2>Template Preview</h2>
+              <p class="hint" style="margin-top:-15px; margin-bottom:15px;">Drag a box over the image to select the area for the text.</p>
+              
+              <div style="text-align: center; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #f8fafc; margin-bottom: 24px;">
+                <div id="imgWrapper" style="display: inline-block; position: relative; max-width: 100%; width: 100%;">
+                  <img id="templatePreview" style="max-width: 100%; width: 100%; display: block; cursor: crosshair;" alt="Template Preview">
+                  <video id="templateVideoPreview" style="max-width: 100%; width: 100%; display: none; cursor: crosshair;" autoplay loop muted></video>
+                </div>
+              </div>
+              
+              <div class="grid">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                  <h3>Select Column For File Name Saving</h3>
+                  <div class="controls">
+                    <label style="font-weight: 500; color: #475569; font-size: 14px;">
+                      Column to map:
+                      <select id="nameColumn" style="width:100%; padding:10px; border-radius:8px; border:1px solid #cbd5e1; margin-top: 8px;"></select>
+                    </label>
+                  </div>
+                </div>
+
+                <div id="selectionInfo" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                  <h3 style="margin-top: 0; margin-bottom: 15px;">Selected Area</h3>
+                  <div class="sel-info-item">
+                    <span>Data Column:</span>
+                    <strong id="selCol" style="color:#3b82f6;">-</strong>
+                  </div>
+                  <div class="coord-grid">
+                    <div class="coord-box"><span>X</span><strong id="selX">-</strong></div>
+                    <div class="coord-box"><span>Y</span><strong id="selY">-</strong></div>
+                    <div class="coord-box"><span>W</span><strong id="selW">-</strong></div>
+                    <div class="coord-box"><span>H</span><strong id="selH">-</strong></div>
+                  </div>
+                  <div class="sel-info-item" style="margin-top: 15px;">
+                    <span>Font Size:</span>
+                    <strong id="selFs">-</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT SIDE: Scrollable Configuration & Generation -->
+          <div style="flex: 1; min-width: 450px; display: flex; flex-direction: column; gap: 24px;">
+
+      <!-- 3. CONFIGURE TEXT -->
+        <div id="settings" class="card" style="margin-bottom: 0;">
+          <h2>Configure Elements</h2>
+          <p class="hint" style="margin-top:-15px; margin-bottom:20px;">Fine-tune the typography, colors, and borders for each mapped column.</p>
+          
+          <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <button id="openAddColumnModalBtn" class="outline-btn" style="flex: 1; border-color: #3b82f6; color: #3b82f6;">+ Add Column</button>
+            <button id="openMergePanelBtn" class="outline-btn" style="flex: 1; border-color: #10b981; color: #10b981;">+ Merge Columns</button>
+          </div>
+
+          <div id="mergedPositions" class="positions-container" style="margin-bottom: 20px; empty-cells: hide;"></div>
+          
+          <div id="positions" class="positions-container"></div>
+          
+          <div class="grid" style="margin-top: 30px;">
+            <!-- Watermark -->
+            <div id="watermarkSettings" class="config-box">
+              <h3>Watermark Settings</h3>
+              <label class="switch-label">
+                <input type="checkbox" id="wmEnable"> Enable Watermark
+              </label>
+              
+              <div id="wmControls" style="display: none; flex-direction: column; gap: 15px; margin-top: 15px;">
+                  <label class="inp-group">
+                    <span>Text</span>
+                    <input type="text" id="wmText" value="Company Name">
+                  </label>
+                  
+                  <div class="inp-row">
+                    <label class="inp-group" style="flex:1;">
+                      <span>Size</span>
+                      <div class="number-spinner">
+                          <button type="button" id="wmFsMinus">−</button>
+                          <input type="number" id="wmFs" value="40">
+                          <button type="button" id="wmFsPlus">+</button>
+                      </div>
+                    </label>
+                    <label class="inp-group" style="flex:1;">
+                      <span>Color</span>
+                      <div style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin-top: 4px;">
+                        <input type="color" id="wmColor" value="#ffffff">
+                      </div>
+                    </label>
+                  </div>
+                  
+                  <div class="inp-row">
+                    <label class="inp-group" style="flex:1;">
+                      <span>Opacity %</span>
+                      <div class="number-spinner">
+                        <button type="button" id="wmOpMinus">−</button>
+                        <input type="number" id="wmOpacity" value="50" min="0" max="100">
+                        <button type="button" id="wmOpPlus">+</button>
+                      </div>
+                    </label>
+                    <label class="inp-group" style="flex:1;">
+                      <span>Rotation °</span>
+                      <div class="number-spinner">
+                        <button type="button" id="wmRotMinus">−</button>
+                        <input type="number" id="wmRotation" value="45">
+                        <button type="button" id="wmRotPlus">+</button>
+                      </div>
+                    </label>
+                  </div>
+                  
+                  <button type="button" id="wmPickBtn" class="outline-btn" style="margin-top:10px;">🔲 Capture Area</button>
+                  <input type="hidden" id="wmX" value="500">
+                  <input type="hidden" id="wmY" value="500">
+                  <input type="hidden" id="wmW" value="300">
+                  <input type="hidden" id="wmH" value="100">
+              </div>
+            </div>
+
+            <!-- Logo -->
+            <div id="logoSettings" class="config-box">
+              <h3>Logo Settings</h3>
+              <label class="switch-label">
+                <input type="checkbox" id="logoEnable"> Enable Logo
+              </label>
+              
+              <div id="logoControls" style="display: none; flex-direction: column; gap: 15px; margin-top: 15px;">
+                  <label class="inp-group">
+                      <span>Upload Logo</span>
+                      <input type="file" id="logoFile" accept="image/*" style="padding: 8px;">
+                  </label>
+                  
+                  <label class="inp-group">
+                    <span>Opacity %</span>
+                    <div class="number-spinner">
+                      <button type="button" id="logoOpMinus">−</button>
+                      <input type="number" id="logoOpacity" value="100" min="0" max="100">
+                      <button type="button" id="logoOpPlus">+</button>
+                    </div>
+                  </label>
+                  
+                  <button type="button" id="logoPickBtn" class="outline-btn" style="margin-top:10px;">🔲 Capture Area</button>
+                  <input type="hidden" id="logoX" value="100">
+                  <input type="hidden" id="logoY" value="100">
+                  <input type="hidden" id="logoW" value="100">
+                  <input type="hidden" id="logoH" value="100">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      <!-- 4. GENERATE SECTION -->
+        <div id="generateSection" class="card" style="margin-bottom: 0;">
+          <h2>Generate Images / Video</h2>
+          <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+              <button id="previewBtn" class="secondary-btn">Preview One</button>
+              <button id="generateBtn">Generate All Files</button>
+          </div>
+          <div id="generateStatus"></div>
+
+          <div id="previewResult" style="display:none; margin-top:30px; text-align:center; padding:20px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc;">
+            <h3 style="margin-top:0; color:#1e293b;">Generated Preview</h3>
+            <div id="previewMediaContainer" style="margin-bottom:20px; border-radius: 8px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+            <button class="outline-btn" onclick="document.getElementById('previewResult').style.display='none'; const v = document.querySelector('#previewMediaContainer video'); if(v) v.pause();">Close Preview</button>
+          </div>
+        </div>
+
+        <div class="card" id="preview">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h2 style="margin:0; border:none; padding:0;">Data Preview</h2>
+            <label class="switch-label">
+                <input type="checkbox" id="showDataPreviewCheck" checked> Show Data
+            </label>
+          </div>
+          <div id="table" class="table-wrap"></div>
+        </div>
+
+          </div> <!-- End of RIGHT SIDE -->
+        </div> <!-- End of flex container -->
+      </section>
+
+      <!-- 5. EXCEL GENERATOR SECTION -->
+      <section id="excelGenerator" class="content-section hidden">
+        <div class="card">
+          <h2>3. Generate Excel Links</h2>
+          <div class="grid" style="margin-bottom: 24px;">
+            <label class="upload">
+              <span class="upload-icon">📥</span>
+              <span>Data Excel File</span>
+              <input id="videoGenExcel" type="file" accept=".xlsx,.xlsm,.csv">
+            </label>
+            <label class="upload">
+              <span class="upload-icon">📤</span>
+              <span>Output File Label</span>
+              <input id="outputDataExcel" type="file" accept=".xlsx,.xlsm,.csv">
+            </label>
+          </div>
+          
+          <div style="text-align: center; margin-bottom: 30px;">
+            <button id="readSection4Btn">Read Excel Files</button>
+          </div>
+
+          <div id="excelMapping" class="config-box" style="padding: 24px;">
+            <div class="batch-settings">
+              <h4 style="margin-top: 0; color: #1e293b; font-size: 16px;">Batch Settings</h4>
+              <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px;">
+                <label style="font-weight: 500; color: #475569; font-size: 14px;">Batch Size (Rows):</label>
+                <input type="number" id="sec4BatchSize" min="1" value="25" class="clean-input" style="width: 80px;">
+                <button id="applySec4BatchBtn" class="outline-btn" style="margin:0;">Apply</button>
+              </div>
+              <div id="sec4BatchInfo" style="font-size: 14px; color: #64748b; font-weight: 500;"></div>
+            </div>
+
+            <table class="mapping-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px; text-align:center;"><input type="checkbox" id="sec4SelectAll" checked style="cursor: pointer; transform:scale(1.2);" title="Select All"></th>
+                  <th>Output Column</th>
+                  <th>Mapped To / Default Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows dynamically populated -->
+              </tbody>
+            </table>
+            
+            <div style="margin-top: 24px; text-align: right; border-top: 1px solid #e2e8f0; padding-top: 24px;">
+              <button id="downloadExcelBtn" style="background: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">Generate & Download</button>
+            </div>
+            
+            <div id="sec4BatchDownloads" class="batch-downloads" style="display:none;">
+                <h3>Generated Excel Files</h3>
+                <div id="sec4BatchList" class="batch-list"></div>
+                <button id="sec4DownloadAllBtn" style="width: 100%;">Download All (ZIP)</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+    
+    <!-- Modal for Merged Sections -->
+    <div id="mergeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+      <div style="background: #ffffff; width: 90%; max-width: 500px; border-radius: 16px; padding: 30px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+        <h3 style="margin-top: 0; font-size: 20px; color: #0f172a; margin-bottom: 20px;">Merge Columns</h3>
+        <p style="color: #64748b; font-size: 14px; margin-bottom: 20px; margin-top: -10px;">Select the columns you want to combine into a single text block.</p>
+        <div id="mergeColumnCheckboxes" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; max-height: 300px; overflow-y: auto; padding-right: 10px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc;">
+          <!-- Populated dynamically via JS -->
+        </div>
+        <div style="margin-bottom: 25px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: #475569;">
+          <label for="mergeSeparatorInp" style="font-weight: 500;">Separator text:</label>
+          <input type="text" id="mergeSeparatorInp" value=" | " style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 60px; text-align: center; font-family: monospace;">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+          <button id="cancelMergeBtn" class="outline-btn" style="margin: 0;">Cancel</button>
+          <button id="createMergedSectionBtn" style="margin: 0; background: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); border: none; color: white;">Merge Selected</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Modal for Adding Single Column -->
+    <div id="addColumnModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+      <div style="background: #ffffff; width: 90%; max-width: 500px; border-radius: 16px; padding: 30px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+        <h3 style="margin-top: 0; font-size: 20px; color: #0f172a; margin-bottom: 20px;">Add Columns</h3>
+        <p style="color: #64748b; font-size: 14px; margin-bottom: 20px; margin-top: -10px;">Select Excel columns to add to the workspace.</p>
+        <div id="singleColumnRadios" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; max-height: 300px; overflow-y: auto; padding-right: 10px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc;">
+          <!-- Populated dynamically via JS -->
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+          <button id="cancelAddColumnBtn" class="outline-btn" style="margin: 0;">Cancel</button>
+          <button id="createSingleColumnBtn" style="margin: 0; background: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); border: none; color: white;">Add Selected</button>
+        </div>
+      </div>
+    </div>
+    
+  </main>
+</div>
+
+<script>
+  // Tab switching logic
+  document.querySelectorAll(".nav-item").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if(btn.disabled) return;
+      document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      
+      const targetId = btn.getAttribute("data-target");
+      document.querySelectorAll(".content-section").forEach(sec => sec.classList.add("hidden"));
+      document.getElementById(targetId).classList.remove("hidden");
+
+      if (targetId === 'designWorkspace') {
+          document.body.classList.add('workspace-active');
+      } else {
+          document.body.classList.remove('workspace-active');
+      }
+    });
+  });
+</script>
+<script src="/static/script.js?v=21"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.vscode/
+.openpost/
+output/
+debug_excel.txt
+ffmpeg.exe
+test_border.mp4
+test_video.mp4

@@ -3,8 +3,10 @@ import subprocess
 import re
 # pyrefly: ignore [missing-import]
 from PIL import Image, ImageDraw, ImageFont
+import os
 
-FFMPEG_PATH = str(Path(__file__).parent / "ffmpeg.exe")
+# Use system ffmpeg on Linux (Docker), else use the bundled Windows ffmpeg.exe
+FFMPEG_PATH = "ffmpeg" if os.name != "nt" else str(Path(__file__).parent / "ffmpeg.exe")
 
 def safe_filename(text):
     text = re.sub(r'[<>:"/\\\\|?*]', "_", str(text)).strip()

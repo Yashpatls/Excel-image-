@@ -5,8 +5,8 @@ import re
 from PIL import Image, ImageDraw, ImageFont
 import os
 
-# Use system ffmpeg on Linux (Docker), else use the bundled Windows ffmpeg.exe
-FFMPEG_PATH = "ffmpeg" if os.name != "nt" else str(Path(__file__).parent / "ffmpeg.exe")
+# Point to the Linux ffmpeg file we uploaded, or windows .exe locally
+FFMPEG_PATH = str(Path(__file__).parent / "ffmpeg") if os.name != "nt" else str(Path(__file__).parent / "ffmpeg.exe")
 
 def safe_filename(text):
     text = re.sub(r'[<>:"/\\\\|?*]', "_", str(text)).strip()

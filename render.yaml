@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: excel-image-automation
+    env: docker
+    plan: free
+    region: ohio
+    healthCheckPath: /
